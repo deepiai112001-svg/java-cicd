@@ -22,7 +22,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: app
-          image: ghcr.io/REPLACE_OWNER/java-cicd:latest
+          image: ghcr.io/deepiai112001-svg/java-cicd:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

@@ -12,5 +12,5 @@ resources:
 # CI sẽ patch field này khi build image mới — đó là cách GitOps đẩy version
 # vào cluster mà không cần ai chạy kubectl tay.
 images:
-  - name: ghcr.io/REPLACE_OWNER/java-cicd
-    newTag: latest
+  - name: ghcr.io/deepiai112001-svg/java-cicd
+    newTag: sha-9a172ff
