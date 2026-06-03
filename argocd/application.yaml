@@ -9,7 +9,7 @@ spec:
   project: default
   source:
     # Thay REPLACE_OWNER bằng GitHub username/org của anh, ví dụ: deepiai112001-svg
-    repoURL: https://github.com/REPLACE_OWNER/java-cicd.git
+    repoURL: https://github.com/deepiai112001-svg/java-cicd.git
     targetRevision: main
     path: k8s
   destination:
