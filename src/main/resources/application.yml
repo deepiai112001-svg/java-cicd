@@ -1,0 +1,28 @@
+server:
+  port: 8080
+  shutdown: graceful
+
+spring:
+  application:
+    name: java-cicd
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+app:
+  version: 1.0.0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true

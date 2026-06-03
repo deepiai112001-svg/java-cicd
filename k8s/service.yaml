@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: java-cicd
+  labels:
+    app: java-cicd
+spec:
+  type: ClusterIP
+  selector:
+    app: java-cicd
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

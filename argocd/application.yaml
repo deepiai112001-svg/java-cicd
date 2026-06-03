@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: java-cicd
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    # Thay REPLACE_OWNER bằng GitHub username/org của anh, ví dụ: deepiai112001-svg
+    repoURL: https://github.com/REPLACE_OWNER/java-cicd.git
+    targetRevision: main
+    path: k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: java-cicd
+  syncPolicy:
+    automated:
+      prune: true       # xoá resource trong cluster khi xoá khỏi Git
+      selfHeal: true    # nếu ai sửa cluster bằng tay, ArgoCD auto-revert
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

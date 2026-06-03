@@ -1,0 +1,96 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'k8s/kustomization.yaml'   # tránh loop: bot tự commit step (5) sẽ kích lại workflow
+      - 'README.md'
+  pull_request:
+    branches: [main]
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Run tests
+        run: mvn -B verify
+      # SonarCloud (tuỳ chọn) — bật khi đã tạo project trên sonarcloud.io
+      # - name: SonarCloud scan
+      #   if: github.event_name == 'push'
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     mvn -B sonar:sonar \
+      #       -Dsonar.host.url=https://sonarcloud.io \
+      #       -Dsonar.organization=YOUR_ORG \
+      #       -Dsonar.projectKey=YOUR_ORG_java-cicd
+
+  build-push:
+    name: Build & Push Docker image
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # cần để commit lại kustomization.yaml
+      packages: write       # cần để push lên ghcr.io
+    outputs:
+      image_tag: ${{ steps.meta.outputs.short_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        run: echo "short_sha=sha-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build & push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.short_sha }}
+            ${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Cập nhật tag mới vào kustomization.yaml — chính là "commit" của GitOps.
+      # ArgoCD watch repo này, thấy tag đổi sẽ tự sync xuống cluster.
+      - name: Update kustomization image tag
+        run: |
+          sed -i "s|newTag: .*|newTag: ${{ steps.meta.outputs.short_sha }}|" k8s/kustomization.yaml
+          # Thay tên owner GitHub (chỉ chạy 1 lần đầu, các lần sau sed sẽ no-op)
+          sed -i "s|REPLACE_OWNER|${{ github.repository_owner }}|g" k8s/kustomization.yaml k8s/deployment.yaml
+
+      - name: Commit & push manifest update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No manifest change."
+            exit 0
+          fi
+          git add k8s/kustomization.yaml k8s/deployment.yaml
+          git commit -m "chore: bump image to ${{ steps.meta.outputs.short_sha }} [skip ci]"
+          git push
