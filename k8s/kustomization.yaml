@@ -8,6 +8,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - hpa.yaml
+  - ingress.yaml
 
 # CI sẽ patch field này khi build image mới — đó là cách GitOps đẩy version
 # vào cluster mà không cần ai chạy kubectl tay.
