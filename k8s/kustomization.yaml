@@ -14,4 +14,4 @@ resources:
 # vào cluster mà không cần ai chạy kubectl tay.
 images:
   - name: ghcr.io/deepiai112001-svg/java-cicd
-    newTag: sha-e972d85
+    newTag: sha-ffa9e13
